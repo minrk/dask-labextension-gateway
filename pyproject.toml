@@ -78,7 +78,7 @@ select = [
 
 # tbump for tagging releases
 [tool.tbump]
-github_url = "https://github.com/minrk/jupyterhub"
+github_url = "https://github.com/minrk/dask-labextension-gateway"
 
 [tool.tbump.version]
 current = "0.0.1"
