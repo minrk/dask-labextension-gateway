@@ -2,6 +2,7 @@
 copied from dask_gateway/tests/utils_test.py
 # used under BSD-3-Clause License
 """
+
 import asyncio
 import atexit
 import os
@@ -28,7 +29,7 @@ class aiohttp_server:
 
     @property
     def address(self):
-        return "http://%s:%d" % (self.host, self.port)
+        return f"http://{self.host}:{self.port}"
 
     async def __aenter__(self):
         await self.runner.setup()
@@ -98,11 +99,11 @@ def cleanup_lingering():
         except OSError:
             pass
     if nkilled:
-        print("-- Stopped %d lost processes --" % nkilled)
+        print(f"-- Stopped {nkilled} lost processes --")
 
 
 class LocalTestingBackend(UnsafeLocalBackend):
-    pids = set()
+    pids: set[int] = set()
 
     async def start_process(self, *args, **kwargs):
         pid = await super().start_process(*args, **kwargs)

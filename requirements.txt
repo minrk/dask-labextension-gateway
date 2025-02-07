@@ -1,2 +1,2 @@
-dask-labextension
 dask-gateway
+dask-labextension

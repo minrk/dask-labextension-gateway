@@ -1,9 +1,9 @@
 import asyncio
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
 from inspect import iscoroutinefunction
-from concurrent.futures import ThreadPoolExecutor
 
 import dask
 import pytest
@@ -60,10 +60,11 @@ async def manager(gateway):
 async def wait_for_workers(manager, cluster_id, workers=2, timeout=10):
     model = manager.get_cluster(cluster_id)
     start = time.monotonic()
-    while model["workers"] != 2:
+    while model["workers"] != workers:
         await asyncio.sleep(0.1)
         model = manager.get_cluster(cluster_id)
-        assert time.monotonic() < start + 10, model["workers"]
+        assert time.monotonic() < start + timeout, model["workers"]
+
 
 @async_in_thread
 async def test_start(manager):
@@ -130,13 +131,13 @@ async def test_list(manager):
 async def test_scale(manager):
     # add cluster with number of workers configuration
     model = await manager.start_cluster(configuration={"workers": 3})
-    await wait_for_workers(manager, model['id'], 3)
+    await wait_for_workers(manager, model["id"], 3)
 
     await asyncio.sleep(0.2)  # let workers settle # TODO: remove need for this
 
     # rescale the cluster
     model = await manager.scale_cluster(model["id"], 6)
-    await wait_for_workers(manager, model['id'], 6)
+    await wait_for_workers(manager, model["id"], 6)
 
 
 @async_in_thread
@@ -144,22 +145,19 @@ async def test_adapt(manager):
     # add a new cluster
     model = await manager.start_cluster()
     model = manager.adapt_cluster(model["id"], 2, 4)
-    start = time.monotonic()
-    while model["workers"] != 2:
-        await asyncio.sleep(0.1)
-        model = manager.get_cluster(model["id"])
-        assert time.monotonic() < start + 10, model["workers"]
+    await wait_for_workers(manager, model["id"], 2)
 
 
 @async_in_thread
 async def test_initial(gateway):
-    with dask.config.set({
-        "labextension": {
-            "initial": [{"name": "foo"}],
-            "default": {"workers": 2},
+    with dask.config.set(
+        {
+            "labextension": {
+                "initial": [{"name": "foo"}],
+                "default": {"workers": 2},
+            }
         }
-    }):
-
+    ):
         # Test asynchronous starting of clusters via a context
         async with DaskGatewayClusterManager(gateway=gateway) as manager:
             clusters = manager.list_clusters()

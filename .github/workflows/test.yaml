@@ -1,5 +1,4 @@
 name: Tests
-
 on:
   pull_request:
     paths-ignore:
@@ -19,7 +18,6 @@ jobs:
   test:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-
     strategy:
       # Keep running even if one variation of the job fail
       fail-fast: false
@@ -30,21 +28,17 @@ jobs:
           - "3.10"
           - "3.11"
           - "3.12"
-
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "${{ matrix.python }}"
-
       - name: Install Python dependencies
         run: |
           pip install ".[test]"
           pip list
-
       - name: Run tests
         run: |
           pytest
-
       # GitHub action reference: https://github.com/codecov/codecov-action
       - uses: codecov/codecov-action@v5

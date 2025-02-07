@@ -7,9 +7,7 @@ name = "dask-labextension-gateway"
 version = "0.0.1.dev"
 dynamic = ["readme", "dependencies"]
 description = "Add Dask Gateway support to dask-labextension"
-authors = [
-  { name = "Min RK", email = "benjaminrk@gmail.com" },
-]
+authors = [{ name = "Min RK", email = "benjaminrk@gmail.com" }]
 keywords = ["Dask", "Jupyter"]
 license = { text = "BSD-3-Clause" }
 requires-python = ">=3.8"
@@ -30,12 +28,7 @@ Source = "https://github.com/minrk/dask-labextension-gateway"
 Tracker = "https://github.com/minrk/dask-labextension-gateway/issues"
 
 [project.optional-dependencies]
-test = [
-    "dask-gateway-server[local]",
-    "pytest",
-    "pytest-asyncio",
-    "pytest-cov",
-]
+test = ["dask-gateway-server[local]", "pytest", "pytest-asyncio", "pytest-cov"]
 
 
 [tool.setuptools]
@@ -60,7 +53,9 @@ fallback_version = "0.0.0"
 
 [tool.setuptools.data-files]
 # this doesn't work recursively, # must specify each _directory_
-"etc/jupyter/jupyter_server_config.d" = ["etc/jupyter/jupyter_server_config.d/*"]
+"etc/jupyter/jupyter_server_config.d" = [
+  "etc/jupyter/jupyter_server_config.d/*",
+]
 
 [tool.pytest.ini_options]
 addopts = "--verbose --color=yes --durations=10"
@@ -71,13 +66,12 @@ asyncio_default_fixture_loop_scope = "function"
 [tool.ruff.format]
 
 [tool.ruff.lint]
-ignore = [
-]
+ignore = []
 select = [
-    "E9", # syntax
-    "I", # isort
-    "UP", # pyupgrade
-    "F", # flake8
+  "E9", # syntax
+  "I",  # isort
+  "UP", # pyupgrade
+  "F",  # flake8
 ]
 
 # tbump for tagging releases

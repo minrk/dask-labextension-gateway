@@ -20,24 +20,28 @@ if typing.TYPE_CHECKING:
 
 __version__ = "0.0.1.dev"
 
-def _jupyter_server_extension_paths() -> list[dict[str,str]]:
+
+def _jupyter_server_extension_paths() -> list[dict[str, str]]:
     return [{"module": "dask_labextension_gateway"}]
 
 
-def load_jupyter_server_extension(nb_server_app: jupyter_server.serverapp.ServerApp) -> None:
+def load_jupyter_server_extension(
+    nb_server_app: jupyter_server.serverapp.ServerApp,
+) -> None:
     use_labextension = dask.config.get("labextension.use_gateway", False)
     if not use_labextension:
         nb_server_app.log.info("Not enabling Dask Gateway in dask jupyterlab extension")
         return
     nb_server_app.log.info("Enabling Dask Gateway in dask jupyterlab extension")
     from dask_labextension import manager
+
     manager.manager = DaskGatewayClusterManager()
     # already imported, need to patch module-level manager reference
-    for submod in ('clusterhandler', 'dashboardhandler'):
+    for submod in ("clusterhandler", "dashboardhandler"):
         modname = f"dask_labextension.{submod}"
         if modname in sys.modules:
             nb_server_app.log.info(f"[dask_labextension_gateway] patching {modname}\n")
-            sys.modules[modname].manager = manager.manager # type: ignore
+            sys.modules[modname].manager = manager.manager  # type: ignore
 
 
 def _cluster_id_from_name(cluster_id: str) -> str:
@@ -52,8 +56,9 @@ def _cluster_id_from_name(cluster_id: str) -> str:
 
 class DaskGatewayClusterManager(DaskClusterManager):
     gateway: Gateway
+    _started_clusters: set[str]
 
-    def __init__(self, *, gateway: Gateway | None=None) -> None:
+    def __init__(self, *, gateway: Gateway | None = None) -> None:
         self._created_gateway = False
         if gateway is None:
             self._created_gateway = True
@@ -61,7 +66,7 @@ class DaskGatewayClusterManager(DaskClusterManager):
         self.gateway = gateway
         self._started_clusters = set()
         super().__init__()
-    
+
     async def close(self):
         if self._started_clusters:
             clusters = self.gateway.list_clusters()
@@ -95,7 +100,9 @@ class DaskGatewayClusterManager(DaskClusterManager):
         with self.gateway.connect(cluster_name) as cluster:
             return make_cluster_model(cluster_id, cluster_name, cluster, None)
 
-    async def start_cluster(self, cluster_id: str = "", configuration: dict[str, Any] | None = None) -> ClusterModel:
+    async def start_cluster(
+        self, cluster_id: str = "", configuration: dict[str, Any] | None = None
+    ) -> ClusterModel:
         # default cluster options come from gateway.cluster.options
         cluster = self.gateway.new_cluster(shutdown_on_close=False)
         self._started_clusters.add(cluster.name)
@@ -103,16 +110,22 @@ class DaskGatewayClusterManager(DaskClusterManager):
         self._cluster_names[cluster_id] = cluster.name
 
         # apply dask.labextension default scale
-        configuration = cast(dict, dask.config.merge(
-            dask.config.get("labextension.default"),
-            configuration or {},
-        ))
-        if configuration.get("adapt"):
-            self.gateway.adapt_cluster(
-                cluster.name, **configuration.get("adapt")
-            )
-        elif configuration.get("workers") is not None:
-            self.gateway.scale_cluster(cluster.name, configuration["workers"])
+        configuration = cast(
+            dict,
+            dask.config.merge(
+                dask.config.get("labextension.default"),
+                configuration or {},
+            ),
+        )
+        adapt = configuration.get("adapt")
+        workers = configuration.get("workers")
+        if adapt is None and workers is None:
+            # default: adaptive, no limit
+            self.gateway.adapt_cluster(cluster.name)
+        elif adapt is not None:
+            self.gateway.adapt_cluster(cluster.name, **adapt)
+        elif workers is not None:
+            self.gateway.scale_cluster(cluster.name, workers)
         with cluster:
             model = make_cluster_model(cluster_id, cluster.name, cluster, None)
         return model
@@ -130,11 +143,11 @@ class DaskGatewayClusterManager(DaskClusterManager):
         self.gateway.scale_cluster(self._cluster_names[cluster_id], n)
         return self.get_cluster(cluster_id)
 
-    def adapt_cluster(self, cluster_id: str, minimum: int, maximum: int) -> ClusterModel | None:
+    def adapt_cluster(
+        self, cluster_id: str, minimum: int, maximum: int
+    ) -> ClusterModel | None:
         cluster_model = self.get_cluster(cluster_id)
         if cluster_model is None:
             return None
         self.gateway.adapt_cluster(cluster_model["name"], minimum, maximum)
         return self.get_cluster(cluster_id)
-    
-    
