@@ -9,6 +9,7 @@ from typing import Any, cast
 
 import dask.config
 from dask_gateway import Gateway
+from dask_labextension import manager
 from dask_labextension.manager import (
     DaskClusterManager,
     make_cluster_model,
@@ -33,7 +34,6 @@ def load_jupyter_server_extension(
         nb_server_app.log.info("Not enabling Dask Gateway in dask jupyterlab extension")
         return
     nb_server_app.log.info("Enabling Dask Gateway in dask jupyterlab extension")
-    from dask_labextension import manager
 
     manager.manager = DaskGatewayClusterManager()
     # already imported, need to patch module-level manager reference
