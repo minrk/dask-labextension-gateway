@@ -57,6 +57,14 @@ async def manager(gateway):
         await _run_in_thread(manager.__aexit__, *sys.exc_info())
 
 
+async def wait_for_workers(manager, cluster_id, workers=2, timeout=10):
+    model = manager.get_cluster(cluster_id)
+    start = time.monotonic()
+    while model["workers"] != 2:
+        await asyncio.sleep(0.1)
+        model = manager.get_cluster(cluster_id)
+        assert time.monotonic() < start + 10, model["workers"]
+
 @async_in_thread
 async def test_start(manager):
     # add cluster
@@ -122,21 +130,13 @@ async def test_list(manager):
 async def test_scale(manager):
     # add cluster with number of workers configuration
     model = await manager.start_cluster(configuration={"workers": 3})
-    start = time.monotonic()
-    while model["workers"] != 3:
-        await asyncio.sleep(0.1)
-        model = manager.get_cluster(model["id"])
-        assert time.monotonic() < start + 10, model["workers"]
+    await wait_for_workers(manager, model['id'], 3)
 
     await asyncio.sleep(0.2)  # let workers settle # TODO: remove need for this
 
     # rescale the cluster
     model = await manager.scale_cluster(model["id"], 6)
-    start = time.monotonic()
-    while model["workers"] != 6:
-        await time.sleep(0.1)
-        model = manager.get_cluster(model["id"])
-        assert time.monotonic() < start + 10, model["workers"]
+    await wait_for_workers(manager, model['id'], 6)
 
 
 @async_in_thread
@@ -147,7 +147,7 @@ async def test_adapt(manager):
     start = time.monotonic()
     while model["workers"] != 2:
         await asyncio.sleep(0.1)
-        model = await manager.get_cluster(model["id"])
+        model = manager.get_cluster(model["id"])
         assert time.monotonic() < start + 10, model["workers"]
 
 
@@ -159,14 +159,6 @@ async def test_initial(gateway):
             "default": {"workers": 2},
         }
     }):
-
-        async def wait_for_workers(manager, cluster_id, workers=2, timeout=10):
-            model = manager.get_cluster(cluster_id)
-            start = time.monotonic()
-            while model["workers"] != 2:
-                await asyncio.sleep(0.1)
-                model = manager.get_cluster(cluster_id)
-                assert time.monotonic() < start + 10, model["workers"]
 
         # Test asynchronous starting of clusters via a context
         async with DaskGatewayClusterManager(gateway=gateway) as manager:
