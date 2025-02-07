@@ -8,11 +8,11 @@ import typing
 from typing import Any, cast
 
 import dask.config
+from dask_gateway import Gateway
 from dask_labextension.manager import (
     DaskClusterManager,
     make_cluster_model,
 )
-from dask_gateway import Gateway
 
 if typing.TYPE_CHECKING:
     import jupyter_server
@@ -24,7 +24,7 @@ def _jupyter_server_extension_paths() -> list[dict[str,str]]:
     return [{"module": "dask_labextension_gateway"}]
 
 
-def load_jupyter_server_extension(nb_server_app: "jupyter_server.serverapp.ServerApp") -> None:
+def load_jupyter_server_extension(nb_server_app: jupyter_server.serverapp.ServerApp) -> None:
     use_labextension = dask.config.get("labextension.use_gateway", False)
     if not use_labextension:
         nb_server_app.log.info("Not enabling Dask Gateway in dask jupyterlab extension")
@@ -53,8 +53,10 @@ def _cluster_id_from_name(cluster_id: str) -> str:
 class DaskGatewayClusterManager(DaskClusterManager):
     gateway: Gateway
 
-    def __init__(self) -> None:
-        self.gateway = Gateway()
+    def __init__(self, *, gateway: Gateway | None=None) -> None:
+        if gateway is None:
+            gateway = Gateway()
+        self.gateway = gateway
         super().__init__()
 
     def list_clusters(self) -> list[ClusterModel]:
