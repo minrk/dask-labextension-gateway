@@ -22,7 +22,7 @@ if typing.TYPE_CHECKING:
 __version__ = "0.0.1.dev0"
 
 
-def _jupyter_server_extension_paths() -> list[dict[str, str]]:
+def _jupyter_server_extension_points() -> list[dict[str, str]]:
     return [{"module": "dask_labextension_gateway"}]
 
 
