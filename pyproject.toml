@@ -35,10 +35,12 @@ test = ["dask-gateway-server[local]", "pytest", "pytest-asyncio", "pytest-cov"]
 zip-safe = false
 license-files = ["COPYING.md"]
 include-package-data = true
+py-modules = ["dask_labextension_gateway"]
 
-# [tool.setuptools.packages.find]
-# where = [""]
-# include = ["jupyterhub*"]
+[tool.setuptools.packages.find]
+# doesn't seem to find single-module packages...
+include = ["dask_labextension_gateway*"]
+namespaces = false
 
 # dynamic sources of metadata in other files
 [tool.setuptools.dynamic]
