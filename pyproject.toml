@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dask-labextension-gateway"
-version = "0.0.1.dev"
+version = "0.0.1.dev0"
 dynamic = ["readme", "dependencies"]
 description = "Add Dask Gateway support to dask-labextension"
 authors = [{ name = "Min RK", email = "benjaminrk@gmail.com" }]
@@ -79,7 +79,7 @@ select = [
 github_url = "https://github.com/minrk/jupyterhub"
 
 [tool.tbump.version]
-current = "0.0.1.dev"
+current = "0.0.1.dev0"
 
 regex = '''
   (?P<major>\d+)
