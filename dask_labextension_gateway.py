@@ -54,10 +54,25 @@ class DaskGatewayClusterManager(DaskClusterManager):
     gateway: Gateway
 
     def __init__(self, *, gateway: Gateway | None=None) -> None:
+        self._created_gateway = False
         if gateway is None:
+            self._created_gateway = True
             gateway = Gateway()
         self.gateway = gateway
+        self._started_clusters = set()
         super().__init__()
+    
+    async def close(self):
+        if self._started_clusters:
+            clusters = self.gateway.list_clusters()
+            cluster_names = {c.name for c in clusters}
+        for cluster_name in self._started_clusters:
+            if cluster_name in cluster_names:
+                self.gateway.stop_cluster(cluster_name)
+        self._started_clusters = set()
+        if self.gateway is not None and self._created_gateway:
+            self.gateway.close()
+            self.gateway = None
 
     def list_clusters(self) -> list[ClusterModel]:
         cluster_models = []
@@ -83,6 +98,7 @@ class DaskGatewayClusterManager(DaskClusterManager):
     async def start_cluster(self, cluster_id: str = "", configuration: dict[str, Any] | None = None) -> ClusterModel:
         # default cluster options come from gateway.cluster.options
         cluster = self.gateway.new_cluster(shutdown_on_close=False)
+        self._started_clusters.add(cluster.name)
         cluster_id = _cluster_id_from_name(cluster.name)
         self._cluster_names[cluster_id] = cluster.name
 
@@ -104,6 +120,7 @@ class DaskGatewayClusterManager(DaskClusterManager):
     async def close_cluster(self, cluster_id: str) -> ClusterModel | None:
         cluster_model = self.get_cluster(cluster_id)
         if cluster_model:
+            self._started_clusters.discard(cluster_model["name"])
             self.gateway.stop_cluster(cluster_model["name"])
         return cluster_model
 
@@ -119,3 +136,5 @@ class DaskGatewayClusterManager(DaskClusterManager):
             return None
         self.gateway.adapt_cluster(cluster_model["name"], minimum, maximum)
         return self.get_cluster(cluster_id)
+    
+    

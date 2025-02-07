@@ -31,6 +31,7 @@ Tracker = "https://github.com/minrk/dask-labextension-gateway/issues"
 
 [project.optional-dependencies]
 test = [
+    "dask-gateway-server[local]",
     "pytest",
     "pytest-asyncio",
     "pytest-cov",
@@ -60,6 +61,12 @@ fallback_version = "0.0.0"
 [tool.setuptools.data-files]
 # this doesn't work recursively, # must specify each _directory_
 "etc/jupyter/jupyter_server_config.d" = ["etc/jupyter/jupyter_server_config.d/*"]
+
+[tool.pytest.ini_options]
+addopts = "--verbose --color=yes --durations=10"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff.format]
 
