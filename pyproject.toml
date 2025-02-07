@@ -1,0 +1,108 @@
+[build-system]
+requires = ["setuptools>=61", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dask-labextension-gateway"
+version = "0.0.1.dev"
+dynamic = ["readme", "dependencies"]
+description = "Add Dask Gateway support to dask-labextension"
+authors = [
+  { name = "Min RK", email = "benjaminrk@gmail.com" },
+]
+keywords = ["Dask", "Jupyter"]
+license = { text = "BSD-3-Clause" }
+requires-python = ">=3.8"
+classifiers = [
+  "Development Status :: 1 - Planning",
+  "Intended Audience :: Developers",
+  "Intended Audience :: System Administrators",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: BSD License",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Framework :: Jupyter",
+]
+
+[project.urls]
+Homepage = "https://github.com/minrk/dask-labextension-gateway"
+Source = "https://github.com/minrk/dask-labextension-gateway"
+Tracker = "https://github.com/minrk/dask-labextension-gateway/issues"
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+]
+
+
+[tool.setuptools]
+zip-safe = false
+license-files = ["COPYING.md"]
+include-package-data = true
+
+# [tool.setuptools.packages.find]
+# where = [""]
+# include = ["jupyterhub*"]
+
+# dynamic sources of metadata in other files
+[tool.setuptools.dynamic]
+readme = { file = "README.md", content-type = "text/markdown" }
+dependencies = { file = "requirements.txt" }
+
+# setuptools_scm needs a section to be present
+[tool.setuptools_scm]
+# we don't actually use setuptools_scm for versions,
+# only the file-finder
+fallback_version = "0.0.0"
+
+[tool.setuptools.data-files]
+# this doesn't work recursively, # must specify each _directory_
+"etc/jupyter/jupyter_server_config.d" = ["etc/jupyter/jupyter_server_config.d/*"]
+
+[tool.ruff.format]
+
+[tool.ruff.lint]
+ignore = [
+]
+select = [
+    "E9", # syntax
+    "I", # isort
+    "UP", # pyupgrade
+    "F", # flake8
+]
+
+# tbump for tagging releases
+[tool.tbump]
+github_url = "https://github.com/minrk/jupyterhub"
+
+[tool.tbump.version]
+current = "0.0.1.dev"
+
+regex = '''
+  (?P<major>\d+)
+  \.
+  (?P<minor>\d+)
+  \.
+  (?P<patch>\d+)
+  (?P<pre>((a|b|rc)\d+)|)
+  \.?
+  (?P<dev>(?<=\.)dev\d*|)
+  '''
+
+[tool.tbump.git]
+message_template = "Bump to {new_version}"
+tag_template = "{new_version}"
+
+# For each file to patch, add a [[tool.tbump.file]] config
+# section containing the path of the file, relative to the
+# pyproject.toml location.
+
+[[tool.tbump.file]]
+src = "pyproject.toml"
+search = 'version = "{current_version}"'
+
+[[tool.tbump.file]]
+src = "dask_labextension_gateway.py"
+search = '__version__ = "{current_version}"'
