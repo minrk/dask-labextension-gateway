@@ -19,7 +19,7 @@ if typing.TYPE_CHECKING:
     import jupyter_server
     from dask_labextension.manager import ClusterModel
 
-__version__ = "0.0.1.dev0"
+__version__ = "0.0.1"
 
 
 def _jupyter_server_extension_points() -> list[dict[str, str]]:
