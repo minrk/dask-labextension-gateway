@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import re
 import sys
 import typing
@@ -9,6 +10,7 @@ from typing import Any, cast
 
 import dask.config
 from dask_gateway import Gateway
+from dask_gateway.client import ClusterStatus
 from dask_labextension import manager
 from dask_labextension.manager import (
     DaskClusterManager,
@@ -17,6 +19,7 @@ from dask_labextension.manager import (
 
 if typing.TYPE_CHECKING:
     import jupyter_server
+    from dask_gateway.client import ClusterReport
     from dask_labextension.manager import ClusterModel
 
 __version__ = "0.0.1"
@@ -54,6 +57,22 @@ def _cluster_id_from_name(cluster_id: str) -> str:
     return f"u-u-i-d-{cluster_id}"
 
 
+def make_cluster_report_model(cluster_id: str, cluster: ClusterReport) -> ClusterModel:
+    """make a cluster model from a ClusterReport instead of a connected Cluster
+
+    e.g. for Pending clusters
+    """
+    return dict(
+        id=cluster_id,
+        name=f"{cluster.name} ({cluster.status.name})",
+        scheduler_address=cluster.scheduler_address or "",
+        dashboard_link=cluster.dashboard_link or "",
+        workers=0,
+        memory="0 B",
+        cores=0,
+    )
+
+
 class DaskGatewayClusterManager(DaskClusterManager):
     gateway: Gateway
     _started_clusters: set[str]
@@ -86,10 +105,13 @@ class DaskGatewayClusterManager(DaskClusterManager):
             cluster_name = cluster_info.name
             cluster_id = _cluster_id_from_name(cluster_name)
             self._cluster_names[cluster_id] = cluster_name
-            with self.gateway.connect(cluster_name) as cluster:
-                cluster_model = make_cluster_model(
-                    cluster_id, cluster_name, cluster, None
-                )
+            if cluster_info.status == ClusterStatus.RUNNING:
+                with self.gateway.connect(cluster_name) as cluster:
+                    cluster_model = make_cluster_model(
+                        cluster_id, cluster_name, cluster, None
+                    )
+            else:
+                cluster_model = make_cluster_report_model(cluster_id, cluster_info)
             cluster_models.append(cluster_model)
         return cluster_models
 
@@ -97,17 +119,25 @@ class DaskGatewayClusterManager(DaskClusterManager):
         cluster_name = self._cluster_names.get(cluster_id)
         if cluster_name is None:
             return None
-        with self.gateway.connect(cluster_name) as cluster:
-            return make_cluster_model(cluster_id, cluster_name, cluster, None)
+        try:
+            cluster_info = self.gateway.get_cluster(cluster_name)
+        except ValueError:
+            return None
+        if cluster_info.status == ClusterStatus.RUNNING:
+            with self.gateway.connect(cluster_name) as cluster:
+                return make_cluster_model(cluster_id, cluster_name, cluster, None)
+        else:
+            return make_cluster_report_model(cluster_id, cluster_info)
 
     async def start_cluster(
         self, cluster_id: str = "", configuration: dict[str, Any] | None = None
     ) -> ClusterModel:
         # default cluster options come from gateway.cluster.options
-        cluster = self.gateway.new_cluster(shutdown_on_close=False)
-        self._started_clusters.add(cluster.name)
-        cluster_id = _cluster_id_from_name(cluster.name)
-        self._cluster_names[cluster_id] = cluster.name
+        cluster_name = self.gateway.submit()
+        cluster_info = self.gateway.get_cluster(cluster_name)
+        self._started_clusters.add(cluster_name)
+        cluster_id = _cluster_id_from_name(cluster_name)
+        self._cluster_names[cluster_id] = cluster_name
 
         # apply dask.labextension default scale
         configuration = cast(
@@ -117,17 +147,28 @@ class DaskGatewayClusterManager(DaskClusterManager):
                 configuration or {},
             ),
         )
+        # wait for start; can't scale before cluster has started
+        for _ in range(30):
+            if cluster_info.status == ClusterStatus.PENDING:
+                await asyncio.sleep(1)
+            else:
+                break
+            cluster_info = self.gateway.get_cluster(cluster_name)
+
+        if cluster_info.status != ClusterStatus.RUNNING:
+            return make_cluster_report_model(cluster_id, cluster_info)
+
         adapt = configuration.get("adapt")
         workers = configuration.get("workers")
         if adapt is None and workers is None:
             # default: adaptive, no limit
-            self.gateway.adapt_cluster(cluster.name)
+            self.gateway.adapt_cluster(cluster_name)
         elif adapt is not None:
-            self.gateway.adapt_cluster(cluster.name, **adapt)
+            self.gateway.adapt_cluster(cluster_name, **adapt)
         elif workers is not None:
-            self.gateway.scale_cluster(cluster.name, workers)
-        with cluster:
-            model = make_cluster_model(cluster_id, cluster.name, cluster, None)
+            self.gateway.scale_cluster(cluster_name, workers)
+        with self.gateway.connect(cluster_name) as cluster:
+            model = make_cluster_model(cluster_id, cluster_name, cluster, None)
         return model
 
     async def close_cluster(self, cluster_id: str) -> ClusterModel | None:
