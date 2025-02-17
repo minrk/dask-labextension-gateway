@@ -22,7 +22,7 @@ if typing.TYPE_CHECKING:
     from dask_gateway.client import ClusterReport
     from dask_labextension.manager import ClusterModel
 
-__version__ = "0.1.0"
+__version__ = "0.2.0.dev"
 
 
 def _jupyter_server_extension_points() -> list[dict[str, str]]:
