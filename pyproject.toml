@@ -33,7 +33,7 @@ test = ["dask-gateway-server[local]", "pytest", "pytest-asyncio", "pytest-cov"]
 
 [tool.setuptools]
 zip-safe = false
-license-files = ["COPYING.md"]
+license-files = ["LICENSE"]
 include-package-data = true
 py-modules = ["dask_labextension_gateway"]
 
