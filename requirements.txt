@@ -1,2 +1,2 @@
 dask-gateway
-dask-labextension
+dask-labextension>=2025.1
