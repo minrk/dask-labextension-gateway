@@ -36,6 +36,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           pip install ".[test]"
+          pip install -v https://github.com/dask/dask-labextension/archive/HEAD.tar.gz
           pip list
       - name: Run tests
         run: |
