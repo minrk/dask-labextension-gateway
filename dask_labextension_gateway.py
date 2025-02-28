@@ -97,7 +97,17 @@ def load_jupyter_server_extension(
     ]
     web_app.add_handlers(".*$", handlers)
     nb_server_app.log.info("patching %s", dashboardhandler)
-
+    
+    # patch normalization
+    # so proxied requests go directly to gateway endpoint
+    dashboardhandler._normalize_dashboard_link = partial(
+        _normalize_dashboard_link,
+        nb_server_app.log,
+        dashboardhandler._normalize_dashboard_link,
+    )
+    url = dask.config.get("gateway.public_address") + "something"
+    new_url = dashboardhandler._normalize_dashboard_link(url, None)
+    nb_server_app.log.info(f"Normalized {url} to {new_url}")
 
 
 def _cluster_id_from_name(cluster_id: str) -> str:
