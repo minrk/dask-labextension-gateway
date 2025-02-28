@@ -18,7 +18,6 @@ from dask_labextension.manager import (
     DaskClusterManager,
     make_cluster_model,
 )
-from jupyter_server.utils import url_path_join
 
 if typing.TYPE_CHECKING:
     import jupyter_server
@@ -98,8 +97,9 @@ def load_jupyter_server_extension(
     )
     # initialize doesn't work, monkeypatch private methods
     DaskDashboardHandler._check_host_allowlist = lambda self, host: host in dask_hosts
+    
     DaskDashboardHandler.absolute_url = property(lambda self: True)
-    DaskDashboardHandler.absolute_url.setter(lambda self, _ignored: None)
+    DaskDashboardHandler.absolute_url = DaskDashboardHandler.absolute_url.setter(lambda self, _ignored: None)
 
     # patch normalization
     # so proxied requests go directly to gateway endpoint
