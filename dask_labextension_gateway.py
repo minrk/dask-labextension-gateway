@@ -18,6 +18,8 @@ from dask_labextension.manager import (
     make_cluster_model,
 )
 
+from tornado.log import app_log
+
 if typing.TYPE_CHECKING:
     import jupyter_server
     from dask_gateway.client import ClusterReport
@@ -33,14 +35,17 @@ def _jupyter_server_extension_points() -> list[dict[str, str]]:
 def _normalize_dashboard_link(
     original_normalize: Callable[[str, Any], str], link: str, request: Any
 ) -> str:
+    app_log.info(f"normalize {link}")
     link = original_normalize(link, request)
+    app_log.info(f"normalize2 {link}")
     proxy_address = dask.config.get("labextension.gateway_proxy_address")
     if not proxy_address:
+        app_log.info(f"returning {link}")
         return link
     public_address = dask.config.get("gateway.public_address")
-    print(f"Replacing {public_address} with {proxy_address} in {link}")
+    app_log.info(f"Replacing {public_address} with {proxy_address} in {link}")
     link = link.replace(public_address, proxy_address)
-    print(f"Got {link}")
+    app_log.info(f"Got {link}")
     return link
 
 
@@ -63,13 +68,16 @@ def load_jupyter_server_extension(
 
     from dask_labextension import dashboardhandler
 
-    print("patching!", dashboardhandler)
-    print("test stdout")
-    print("test stderr", file=sys.stderr)
+    app_log.info("patching!", dashboardhandler)
+    app_log.info("test stdout")
+    app_log.info("test stderr", file=sys.stderr)
 
     dashboardhandler._normalize_dashboard_link = partial(
         _normalize_dashboard_link, dashboardhandler._normalize_dashboard_link
     )
+    url = dask.config.get("gateway.public_address") + "something"
+    new_url = dashboardhandler._normalize_dashboard_link(url, None)
+    app_log.info(f"Normalized {url} to {new_url}")
 
 
 def _cluster_id_from_name(cluster_id: str) -> str:
