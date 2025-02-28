@@ -81,22 +81,11 @@ def load_jupyter_server_extension(
         address = dask.config.get(key)
         if address:
             dask_hosts.add(urlparse(address).netloc)
-
-    dashboard_path = url_path_join(
-        base_url, r"dask/dashboard/(?P<cluster_id>[^/]+)/(?P<proxied_path>.+)"
-    )
-    handlers = [
-        (
-            dashboard_path,
-            DaskDashboardHandler,
-            {
-                "absolute_url": False,
-                "host_allowlist": dask_hosts,
-            },
-        ),
-    ]
-    web_app.add_handlers(".*$", handlers)
-    nb_server_app.log.info("patching %s", dashboardhandler)
+    nb_server_app.log.info("patching %s with %s", dashboardhandler, dask_hosts)
+    
+    # too late to apply settings,
+    # have to patch into init
+    DaskDashboardHandler.__init__ = partial(DaskDashboardHandler.__init__, absolute_url=True, host_allowlist=dask_hosts)
     
     # patch normalization
     # so proxied requests go directly to gateway endpoint
