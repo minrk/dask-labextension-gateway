@@ -8,6 +8,7 @@ import sys
 import typing
 from functools import partial
 from typing import Any, Callable, cast
+from urllib.parse import urlparse
 
 import dask.config
 from dask_gateway import Gateway
@@ -17,7 +18,6 @@ from dask_labextension.manager import (
     DaskClusterManager,
     make_cluster_model,
 )
-
 from tornado.log import app_log
 
 if typing.TYPE_CHECKING:
@@ -66,18 +66,32 @@ def load_jupyter_server_extension(
             nb_server_app.log.info(f"[dask_labextension_gateway] patching {modname}\n")
             sys.modules[modname].manager = manager.manager  # type: ignore
 
+    # patch dashboard handler to proxy via the gateway proxy
+    # requires rewriting the proxy URL and allowing the gateway host as a proxy target
+    # neither of which can be done via public APIs
     from dask_labextension import dashboardhandler
 
-    app_log.info("patching!", dashboardhandler)
-    app_log.info("test stdout")
-    app_log.info("test stderr", file=sys.stderr)
+    dask_hosts = {"localhost", "127.0.0.1"}
+    for key in ("gateway.public_address", "labextension.gateway_proxy_address"):
+        address = dask.config.get(key)
+        if address:
+            dask_hosts.add(urlparse(address).netloc)
+
+    def _check_host(host):
+        return host in dask_hosts
+
+    dashboardhandler.DaskDashboardHandler._check_host_allowlist = _check_host
+
+    nb_server_app.log.info("patching!", dashboardhandler)
+    nb_server_app.log.info("test stdout")
+    nb_server_app.log.info("test stderr", file=sys.stderr)
 
     dashboardhandler._normalize_dashboard_link = partial(
         _normalize_dashboard_link, dashboardhandler._normalize_dashboard_link
     )
     url = dask.config.get("gateway.public_address") + "something"
     new_url = dashboardhandler._normalize_dashboard_link(url, None)
-    app_log.info(f"Normalized {url} to {new_url}")
+    nb_server_app.log.info(f"Normalized {url} to {new_url}")
 
 
 def _cluster_id_from_name(cluster_id: str) -> str:
