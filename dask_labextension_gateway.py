@@ -73,7 +73,7 @@ def load_jupyter_server_extension(
     # neither of which can be done via public APIs
     from dask_labextension import dashboardhandler
     from dask_labextension.dashboardhandler import DaskDashboardHandler
-    
+
     # re-register dashboard proxy handler
     # with host_allowlist and absolute_url set
     dask_hosts = {"localhost", "127.0.0.1"}
@@ -82,17 +82,19 @@ def load_jupyter_server_extension(
         if address:
             dask_hosts.add(urlparse(address).netloc)
     nb_server_app.log.info("patching %s with %s", dashboardhandler, dask_hosts)
-    
+
     # too late to apply settings,
     # have to patch into initialize
     def initialize(original_initialize, self, **kw):
-        nb_server_app.log.info("initialize", self, kw)
+        nb_server_app.log.info("initialize %s %s", self, kw)
         original_initialize(self, **kw)
         self.absolute_url = True
         self.host_allowlist = dask_hosts
-        
-    DaskDashboardHandler.initialize = partial(DaskDashboardHandler.initialize, DaskDashboardHandler.initialize)
-    
+
+    DaskDashboardHandler.initialize = partial(
+        DaskDashboardHandler.initialize, DaskDashboardHandler.initialize
+    )
+
     # patch normalization
     # so proxied requests go directly to gateway endpoint
     dashboardhandler._normalize_dashboard_link = partial(
