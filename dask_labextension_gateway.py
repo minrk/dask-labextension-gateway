@@ -77,7 +77,7 @@ def load_jupyter_server_extension(
         if address:
             dask_hosts.add(urlparse(address).netloc)
 
-    def _check_host(host):
+    def _check_host(self, host):
         return host in dask_hosts
 
     dashboardhandler.DaskDashboardHandler._check_host_allowlist = _check_host
