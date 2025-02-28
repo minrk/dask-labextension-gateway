@@ -82,9 +82,8 @@ def load_jupyter_server_extension(
 
     dashboardhandler.DaskDashboardHandler._check_host_allowlist = _check_host
 
-    nb_server_app.log.info("patching!", dashboardhandler)
+    nb_server_app.log.info("patching %s", dashboardhandler)
     nb_server_app.log.info("test stdout")
-    nb_server_app.log.info("test stderr", file=sys.stderr)
 
     dashboardhandler._normalize_dashboard_link = partial(
         _normalize_dashboard_link, nb_server_app.log, dashboardhandler._normalize_dashboard_link
