@@ -63,6 +63,10 @@ def load_jupyter_server_extension(
 
     from dask_labextension import dashboardhandler
 
+    print("patching!", dashboardhandler)
+    print("test stdout")
+    print("test stderr", file=sys.stderr)
+
     dashboardhandler._normalize_dashboard_link = partial(
         _normalize_dashboard_link, dashboardhandler._normalize_dashboard_link
     )
