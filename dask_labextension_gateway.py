@@ -38,7 +38,10 @@ def _normalize_dashboard_link(
     if not proxy_address:
         return link
     public_address = dask.config.get("gateway.public_address")
-    return link.replace(public_address, proxy_address)
+    print(f"Replacing {public_address} with {proxy_address} in {link}")
+    link = link.replace(public_address, proxy_address)
+    print(f"Got {link}")
+    return link
 
 
 def load_jupyter_server_extension(
