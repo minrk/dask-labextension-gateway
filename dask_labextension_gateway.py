@@ -33,19 +33,19 @@ def _jupyter_server_extension_points() -> list[dict[str, str]]:
 
 
 def _normalize_dashboard_link(
-    original_normalize: Callable[[str, Any], str], link: str, request: Any
+    log, original_normalize: Callable[[str, Any], str], link: str, request: Any
 ) -> str:
-    app_log.info(f"normalize {link}")
+    log.info(f"normalize {link}")
     link = original_normalize(link, request)
-    app_log.info(f"normalize2 {link}")
+    log.info(f"normalize2 {link}")
     proxy_address = dask.config.get("labextension.gateway_proxy_address")
     if not proxy_address:
-        app_log.info(f"returning {link}")
+        log.info(f"returning {link}")
         return link
     public_address = dask.config.get("gateway.public_address")
-    app_log.info(f"Replacing {public_address} with {proxy_address} in {link}")
+    log.info(f"Replacing {public_address} with {proxy_address} in {link}")
     link = link.replace(public_address, proxy_address)
-    app_log.info(f"Got {link}")
+    log.info(f"Got {link}")
     return link
 
 
@@ -87,7 +87,7 @@ def load_jupyter_server_extension(
     nb_server_app.log.info("test stderr", file=sys.stderr)
 
     dashboardhandler._normalize_dashboard_link = partial(
-        _normalize_dashboard_link, dashboardhandler._normalize_dashboard_link
+        _normalize_dashboard_link, nb_server_app.log, dashboardhandler._normalize_dashboard_link
     )
     url = dask.config.get("gateway.public_address") + "something"
     new_url = dashboardhandler._normalize_dashboard_link(url, None)
