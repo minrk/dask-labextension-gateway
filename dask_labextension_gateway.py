@@ -84,8 +84,14 @@ def load_jupyter_server_extension(
     nb_server_app.log.info("patching %s with %s", dashboardhandler, dask_hosts)
     
     # too late to apply settings,
-    # have to patch into init
-    DaskDashboardHandler.__init__ = partial(DaskDashboardHandler.__init__, absolute_url=True, host_allowlist=dask_hosts)
+    # have to patch into initialize
+    def initialize(original_initialize, self, **kw):
+        nb_server_app.log.info("initialize", self, kw)
+        original_initialize(self, **kw)
+        self.absolute_url = True
+        self.host_allowlist = dask_hosts
+        
+    DaskDashboardHandler.initialize = partial(DaskDashboardHandler.initialize, DaskDashboardHandler.initialize)
     
     # patch normalization
     # so proxied requests go directly to gateway endpoint
