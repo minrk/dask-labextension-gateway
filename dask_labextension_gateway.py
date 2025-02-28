@@ -6,7 +6,8 @@ import asyncio
 import re
 import sys
 import typing
-from typing import Any, cast
+from functools import partial
+from typing import Any, Callable, cast
 
 import dask.config
 from dask_gateway import Gateway
@@ -29,6 +30,17 @@ def _jupyter_server_extension_points() -> list[dict[str, str]]:
     return [{"module": "dask_labextension_gateway"}]
 
 
+def _normalize_dashboard_link(
+    original_normalize: Callable[[str, Any], str], link: str, request: Any
+) -> str:
+    link = original_normalize(link, request)
+    proxy_address = dask.config.get("labextension.gateway_proxy_address")
+    if not proxy_address:
+        return link
+    public_address = dask.config.get("gateway.public_address")
+    return link.replace(public_address, proxy_address)
+
+
 def load_jupyter_server_extension(
     nb_server_app: jupyter_server.serverapp.ServerApp,
 ) -> None:
@@ -45,6 +57,12 @@ def load_jupyter_server_extension(
         if modname in sys.modules:
             nb_server_app.log.info(f"[dask_labextension_gateway] patching {modname}\n")
             sys.modules[modname].manager = manager.manager  # type: ignore
+
+    from dask_labextension import dashboardhandler
+
+    dashboardhandler._normalize_dashboard_link = partial(
+        _normalize_dashboard_link, dashboardhandler._normalize_dashboard_link
+    )
 
 
 def _cluster_id_from_name(cluster_id: str) -> str:
