@@ -36,6 +36,8 @@ def _normalize_dashboard_link(
     log, original_normalize: Callable[[str, Any], str], link: str, request: Any
 ) -> str:
     log.info(f"normalize {link}")
+    link = original_normalize(link, request)
+    log.info(f"normalize2 {link}")
     proxy_address = dask.config.get("labextension.gateway_proxy_address")
     if not proxy_address:
         log.info(f"returning {link}")
