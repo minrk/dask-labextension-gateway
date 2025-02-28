@@ -18,7 +18,7 @@ from dask_labextension.manager import (
     DaskClusterManager,
     make_cluster_model,
 )
-from tornado.log import app_log
+from jupyter_server.utils import url_path_join
 
 if typing.TYPE_CHECKING:
     import jupyter_server
@@ -57,6 +57,8 @@ def load_jupyter_server_extension(
         nb_server_app.log.info("Not enabling Dask Gateway in dask jupyterlab extension")
         return
     nb_server_app.log.info("Enabling Dask Gateway in dask jupyterlab extension")
+    web_app = nb_server_app.web_app
+    base_url = web_app.settings["base_url"]
 
     manager.manager = DaskGatewayClusterManager()
     # already imported, need to patch module-level manager reference
@@ -70,28 +72,32 @@ def load_jupyter_server_extension(
     # requires rewriting the proxy URL and allowing the gateway host as a proxy target
     # neither of which can be done via public APIs
     from dask_labextension import dashboardhandler
-
+    from dask_labextension.dashboardhandler import DaskDashboardHandler
+    
+    # re-register dashboard proxy handler
+    # with host_allowlist and absolute_url set
     dask_hosts = {"localhost", "127.0.0.1"}
     for key in ("gateway.public_address", "labextension.gateway_proxy_address"):
         address = dask.config.get(key)
         if address:
             dask_hosts.add(urlparse(address).netloc)
 
-    def _check_host(self, host):
-        self.log.info(f"Checking {host} in {dask_hosts}")
-        return host in dask_hosts
-
-    dashboardhandler.DaskDashboardHandler._check_host_allowlist = _check_host
-
-    nb_server_app.log.info("patching %s", dashboardhandler)
-    nb_server_app.log.info("test stdout")
-
-    dashboardhandler._normalize_dashboard_link = partial(
-        _normalize_dashboard_link, nb_server_app.log, dashboardhandler._normalize_dashboard_link
+    dashboard_path = url_path_join(
+        base_url, r"dask/dashboard/(?P<cluster_id>[^/]+)/(?P<proxied_path>.+)"
     )
-    url = dask.config.get("gateway.public_address") + "something"
-    new_url = dashboardhandler._normalize_dashboard_link(url, None)
-    nb_server_app.log.info(f"Normalized {url} to {new_url}")
+    handlers = [
+        (
+            dashboard_path,
+            DaskDashboardHandler,
+            {
+                "absolute_url": False,
+                "host_allowlist": dask_hosts,
+            },
+        ),
+    ]
+    web_app.add_handlers(".*$", handlers)
+    nb_server_app.log.info("patching %s", dashboardhandler)
+
 
 
 def _cluster_id_from_name(cluster_id: str) -> str:
