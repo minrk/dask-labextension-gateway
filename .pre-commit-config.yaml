@@ -2,13 +2,13 @@ ci:
   autoupdate_schedule: monthly
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.9
+    rev: v0.12.11
     hooks:
       - id: ruff
         args: ["--fix", "--show-fixes"]
       - id: ruff-format
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.15.0
+    rev: v1.17.1
     hooks:
       - id: mypy
   # markdown
@@ -20,7 +20,7 @@ repos:
           - mdformat-black
   # format yaml
   - repo: https://github.com/google/yamlfmt
-    rev: v0.16.0
+    rev: v0.17.2
     hooks:
       - id: yamlfmt
   # Format toml
@@ -30,7 +30,7 @@ repos:
       - id: taplo-format
   # Autoformat and linting, misc. details
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: end-of-file-fixer
       - id: requirements-txt-fixer
